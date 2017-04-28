@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+var app = require('../app');
+
+exitOnSignal('SIGINT');
+exitOnSignal('SIGTERM');
+process.stdin.resume();
+
+function exitOnSignal(signal) {
+  process.on(signal, function() {
+    console.log('\ncaught ' + signal + ', exiting');
+    process.exit(1);
+  });
+}
+
+var server = app.listen(app.get('port'), function () {
+  console.log('Express server listening on port ' + server.address().port);
+});

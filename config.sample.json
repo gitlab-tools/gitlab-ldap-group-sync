@@ -1,0 +1,15 @@
+{
+  "port": 3000,
+  "syncInterval": "10m",
+  "gitlab": {
+    "api": "https://repo.mwaysolutions.com/api/v4",
+    "privateToken": "My_S3Cr3T_T0k3n"
+  },
+  "ldap": {
+    "url": "ldaps://ldap.example.com",
+    "baseDN": "OU=AADDC Users,DC=example,DC=com",
+    "username": "ldap@example.com",
+    "password": "mY_S3Cr3T_P455W0Rd",
+    "groupPrefix": "gitlab-"
+  }
+}

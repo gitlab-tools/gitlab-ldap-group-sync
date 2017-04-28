@@ -1,0 +1,4 @@
+.git
+*.md
+node_modules
+config.json

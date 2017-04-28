@@ -1,0 +1,58 @@
+{
+  "type": "object",
+  "properties": {
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 3000
+    },
+    "syncInterval": {
+      "type": "string",
+      "default": "10m"
+    },
+    "gitlab": {
+      "id": "/gitlab",
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "string"
+        },
+        "privateToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "api",
+        "privateToken"
+      ]
+    },
+    "ldap": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "baseDN": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "groupPrefix": {
+          "type": "string",
+          "default": "gitlab-"
+        }
+      },
+      "required": [
+        "url",
+        "baseDN",
+        "username",
+        "password"
+      ]
+    }
+  }
+}

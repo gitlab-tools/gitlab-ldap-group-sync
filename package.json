@@ -1,0 +1,36 @@
+{
+  "name": "gitlab-ldap-group-sync",
+  "version": "0.0.1",
+  "private": true,
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "mocha --recursive test",
+    "test:coverage": "nyc npm test",
+    "test:unit": "mocha --recursive test/middleware test/models test/routes",
+    "test:integration": "mocha --recursive test/integration",
+    "docker": "docker build -t gitlab-tools/gitlab-ldap-group-sync ."
+  },
+  "dependencies": {
+    "activedirectory": "^0.7.2",
+    "body-parser": "^1.17.1",
+    "co": "^4.6.0",
+    "express": "^4.13.3",
+    "getenv": "^0.7.0",
+    "jsonschema": "^1.1.1",
+    "morgan": "^1.6.1",
+    "node-gitlab": "^1.6.0",
+    "schedule": "^0.1.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "debug": "^2.2.0",
+    "gulp": "^3.9.0",
+    "gulp-nodemon": "^2.0.2",
+    "gulp-livereload": "^3.8.0",
+    "gulp-plumber": "^1.0.0",
+    "mocha": "^3.0.2",
+    "nyc": "^10.0.0",
+    "supertest": "^2.0.0"
+  }
+}
