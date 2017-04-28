@@ -33,7 +33,7 @@ var gitlabRoute = require('./routes/gitlab');
 gitlabRoute.init(gitlabLdapGroupSync);
 
 var app = express();
-app.set('port', config.port || process.env.PORT || 3000);
+app.set('port', config.port || process.env.PORT || 8080);
 
 app.use(logger('dev'));
 

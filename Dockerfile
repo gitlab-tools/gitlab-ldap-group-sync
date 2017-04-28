@@ -11,4 +11,4 @@ RUN npm prune && npm install
 
 CMD ["node", "./bin/www"]
 
-EXPOSE 3000
+EXPOSE 8080

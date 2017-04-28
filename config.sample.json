@@ -1,5 +1,5 @@
 {
-  "port": 3000,
+  "port": 8080,
   "syncInterval": "10m",
   "gitlab": {
     "api": "https://repo.mwaysolutions.com/api/v4",
