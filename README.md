@@ -12,7 +12,9 @@ Clone the repository and create a `config.json` file.
 
 ```bash
 git clone https://github.com/gitlab-tools/gitlab-ldap-group-sync.git
-cd gitlab-ldap-group-sync && cp config.sample.json config.json
+cd gitlab-ldap-group-sync
+cp config.sample.json config.json
+npm install
 ```
 
 ## Configuration
