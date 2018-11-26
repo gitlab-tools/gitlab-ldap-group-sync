@@ -20,6 +20,10 @@
         },
         "privateToken": {
           "type": "string"
+        },
+        "requestTimeout": {
+          "type": "integer",
+          "default": 5000
         }
       },
       "required": [
