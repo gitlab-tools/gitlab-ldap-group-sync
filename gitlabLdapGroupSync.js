@@ -3,6 +3,11 @@ var every = require('schedule').every;
 var ActiveDirectory = require('activedirectory');
 var NodeGitlab = require('node-gitlab');
 
+var ACCESS_LEVEL_OWNER = 50;
+var ACCESS_LEVEL_NORMAL = 40;
+
+//require('https').globalAgent.options.ca = require('ssl-root-cas/latest').create();
+
 module.exports = GitlabLdapGroupSync;
 
 var isRunning = false;
@@ -15,6 +20,7 @@ function GitlabLdapGroupSync(config) {
 
   gitlab = NodeGitlab.createThunk(config.gitlab);
   ldap = new ActiveDirectory(config.ldap);
+  this.config = config
 }
 
 
@@ -25,7 +31,6 @@ GitlabLdapGroupSync.prototype.sync = function () {
     return;
   }
   isRunning = true;
-
 
   co(function* () {
     // find all users with a ldap identiy
@@ -44,21 +49,12 @@ GitlabLdapGroupSync.prototype.sync = function () {
     var gitlabLocalUserIds = [];
     for (var user of gitlabUsers) {
       if (user.identities.length > 0) {
-        // gitlabUserMap[user.identities[0].extern_uid] = user.id
         gitlabUserMap[user.username.toLowerCase()] = user.id;
       } else {
         gitlabLocalUserIds.push(user.id);
       }
     }
     console.log(gitlabUserMap);
-
-    //get all ldap groups and create a map with gitlab userid;
-    var ldapGroups = yield getAllLdapGroups(ldap);
-    var groupMembers = {};
-    for (var ldapGroup of ldapGroups) {
-      groupMembers[ldapGroup.cn.replace('gitlab-', '')] = yield resolveLdapGroupMembers(ldap, ldapGroup, gitlabUserMap);
-    }
-    console.log(groupMembers);
 
     //set the gitlab group members based on ldap group
     var gitlabGroups = [];
@@ -72,6 +68,7 @@ GitlabLdapGroupSync.prototype.sync = function () {
     }
     while(pagedGroups.length == 100);
 
+    var membersOwner = yield this.resolveLdapGroupMembers(ldap, 'owners', gitlabUserMap);
 
     for (var gitlabGroup of gitlabGroups) {
       console.log('-------------------------');
@@ -83,7 +80,6 @@ GitlabLdapGroupSync.prototype.sync = function () {
         i++;
         pagedGroupMembers = yield gitlab.groupMembers.list({ id: gitlabGroup.id, per_page: 100, page: i });
         gitlabGroupMembers.push.apply(gitlabGroupMembers, pagedGroupMembers);
-
       }
       while(pagedGroupMembers.length == 100);
 
@@ -93,7 +89,7 @@ GitlabLdapGroupSync.prototype.sync = function () {
           continue; //ignore local users
         }
 
-        var access_level = groupMembers['admins'].indexOf(member.id) > -1 ? 40 : 30;
+        var access_level = membersOwner.indexOf(member.id) > -1 ? ACCESS_LEVEL_OWNER : ACCESS_LEVEL_NORMAL;
         if (member.access_level !== access_level) {
           console.log('update group member permission', { id: gitlabGroup.id, user_id: member.id, access_level: access_level });
           gitlab.groupMembers.update({ id: gitlabGroup.id, user_id: member.id, access_level: access_level });
@@ -102,7 +98,7 @@ GitlabLdapGroupSync.prototype.sync = function () {
         currentMemberIds.push(member.id);
       }
 
-      var members = groupMembers[gitlabGroup.name] || groupMembers[gitlabGroup.path] || groupMembers['default'] || [];
+      var members = yield this.resolveLdapGroupMembers(ldap, gitlabGroup.name, gitlabUserMap);
 
       //remove unlisted users
       var toDeleteIds = currentMemberIds.filter(x => members.indexOf(x) == -1);
@@ -114,17 +110,18 @@ GitlabLdapGroupSync.prototype.sync = function () {
       //add new users
       var toAddIds = members.filter(x => currentMemberIds.indexOf(x) == -1);
       for (var id of toAddIds) {
-        var access_level = groupMembers['admins'].indexOf(id) > -1 ? 40 : 30;
+        var access_level = membersOwner.indexOf(id) > -1 ? ACCESS_LEVEL_OWNER : ACCESS_LEVEL_NORMAL;
         console.log('add group member', { id: gitlabGroup.id, user_id: id, access_level: access_level });
         gitlab.groupMembers.create({ id: gitlabGroup.id, user_id: id, access_level: access_level });
       }
     }
 
-  }).then(function (value) {
+  }.bind(this)).then(function (value) {
     console.log('sync done');
     isRunning = false;
   }, function (err) {
     console.error(err.stack);
+    isRunning = false;
   });
 }
 
@@ -132,7 +129,7 @@ var ins = undefined;
 
 GitlabLdapGroupSync.prototype.startScheduler = function (interval) {
   this.stopScheduler();
-  ins = every(interval).do(this.sync);
+  ins = every(interval).do(this.sync.bind(this));
 }
 
 GitlabLdapGroupSync.prototype.stopScheduler = function () {
@@ -142,33 +139,26 @@ GitlabLdapGroupSync.prototype.stopScheduler = function () {
   ins = undefined;
 }
 
-function getAllLdapGroups(ldap) {
-  return new Promise(function (resolve, reject) {
-    ldap.findGroups('CN=gitlab-*', function (err, groups) {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(groups);
-    });
-  });
-}
-
-function resolveLdapGroupMembers(ldap, group, gitlabUserMap) {
+GitlabLdapGroupSync.prototype.resolveLdapGroupMembers = function(ldap, group, gitlabUserMap) {
+  var groupName = this.config.ldap.groupPrefix + group
+  console.log('Loading users for group: ' + groupName)
   return new Promise(function (resolve, reject) {
     var ldapGroups = {};
-    ldap.getUsersForGroup(group.cn, function (err, users) {
+    ldap.getUsersForGroup(groupName, function (err, users) {
       if (err) {
         reject(err);
         return;
       }
 
       groupMembers = [];
-      for (var user of users) {
-        if (gitlabUserMap[user.sAMAccountName.toLowerCase()]) {
-          groupMembers.push(gitlabUserMap[user.sAMAccountName.toLowerCase()]);
+      if(users) {
+        for (var user of users) {
+          if (gitlabUserMap[user.sAMAccountName.toLowerCase()]) {
+            groupMembers.push(gitlabUserMap[user.sAMAccountName.toLowerCase()]);
+          }
         }
       }
+      console.log('Members=' + groupMembers);
       resolve(groupMembers);
     });
   });
