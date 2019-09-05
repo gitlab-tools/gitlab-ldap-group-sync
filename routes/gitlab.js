@@ -3,9 +3,11 @@ var router = express.Router();
 
 /* GET users listing. */
 router.post('/webhook', function (req, res) {
-  console.log(req);
+  console.log(req.body);
   if (req.body.event_name === 'user_create') {
     gitlabLdapGroupSync.sync();
+    res.status(200).send('OK');
+  } else if(req.body.event_name) {
     res.status(200).send('OK');
   } else {
     res.status(422).send('This is not a valid gitlab system hook');

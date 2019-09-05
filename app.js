@@ -13,6 +13,7 @@ readEnvironmentVariables(configSchema, config);
 
 var validate = require('jsonschema').validate;
 var result = validate(config, configSchema);
+
 if (result.errors.length > 0) {
   console.log('Config file invalid', result);
   process.exit(1);
